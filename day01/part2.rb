@@ -13,4 +13,4 @@ end
 
 puts reach(["+1", "-1"])
 puts reach(%w[+3 +3 +4 -2 -4])
-puts reach(File.read('./input').split("\n"))
+puts reach(File.readlines('./input'))
