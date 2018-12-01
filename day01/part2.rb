@@ -1,13 +1,13 @@
-def reach(arr, freq = 0, hash = Hash.new(false))
-  arr = arr.map(&:to_i)
-  hash[freq] = true
+require 'set'
 
-  loop do
-    arr.each do |i|
-      freq += i
-      return freq if hash[freq]
-      hash[freq] = true
-    end
+def reach(arr, freq = 0, seen = Set.new)
+  arr = arr.map(&:to_i)
+  seen << freq
+
+  arr.cycle do |i|
+    freq += i
+    return freq if seen.include?(freq)
+    seen << freq
   end
 end
 
