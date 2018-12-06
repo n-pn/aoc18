@@ -1,25 +1,24 @@
-input = File.readlines('./input').map do |line|
-  x, y = line.match(/(\d+), (\d+)/).captures.map(&:to_i)
-end
-
-min_x = 9999
-max_x = 0
-min_y = 9999
-max_y = 0
-
-input.each do |x, y|
-  min_x = x if x < min_x
-  max_x = x if x > max_x
-  min_y = y if x < min_y
-  max_y = y if x > max_y
-end
-
-
 def distance(a, b)
   (a[0] - b[0]).abs + (a[1] - b[1]).abs
 end
 
-map = Hash.new{|h, k| h[k] = Hash.new(input.size)}
+min_x = 9999
+max_x = -9999
+min_y = 9999
+max_y = -9999
+
+input = File.readlines('./input').map do |line|
+  x, y = line.match(/(\d+), (\d+)/).captures.map(&:to_i)
+
+  min_x = x if x < min_x
+  max_x = x if x > max_x
+  min_y = y if x < min_y
+  max_y = y if x > max_y
+
+  [x, y]
+end
+
+map = Array.new(max_x + 1){Array.new(max_y + 1, input.size)}
 
 (min_x..max_x).each do |i|
   (min_y..max_y).each do |j|
@@ -31,8 +30,8 @@ map = Hash.new{|h, k| h[k] = Hash.new(input.size)}
   end
 end
 
-count = Hash.new(0)
-edges = Hash.new(false)
+count = Array.new(input.size + 1, 0)
+edges = Array.new(input.size + 1, false)
 
 (min_x..max_x).each do |i|
   (min_y..max_y).each do |j|
@@ -44,6 +43,6 @@ edges = Hash.new(false)
   end
 end
 
-count = count.reject{|k, v| edges[k]}.sort_by{|x, y| y}
+count = count.each_with_index.reject{|c, i| edges[i]}.sort_by{|c, i| -c}
 
-puts count.last.last
+puts count.first.first
