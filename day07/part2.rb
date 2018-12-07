@@ -10,25 +10,25 @@ File.readlines(FILE).each do |line|
   deps[b].add(a)
 end
 
-step_taken = {}
+steps_taken = {}
 worker_time = Array.new(5, 0)
 
 time = 0
 
 while time
-  step_taken.find_all{|c, t| t == time}.each do |c, _|
+  steps_taken.find_all{|c, t| t == time}.each do |c, _|
     ('A'..'Z').each{|char| deps[char].delete(c)}
   end
 
-  chars = ('A'..'Z').reject{|c| step_taken[c] or deps[c].size != 0}
+  chars = ('A'..'Z').reject{|c| steps_taken[c] or deps[c].size != 0}
   avail = worker_time.each_with_index.reject{|x, i| x > time }
 
   chars.each do |char|
     break unless w = avail.shift
-    worker_time[w[1]] = step_taken[char] = time + cost[char]
+    worker_time[w[1]] = steps_taken[char] = time + cost[char]
   end
 
-  time = step_taken.values.reject{|x| x <= time}.min
+  time = steps_taken.values.reject{|x| x <= time}.min
 end
 
-puts step_taken.values.max
+puts steps_taken.values.max
