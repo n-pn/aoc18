@@ -1,5 +1,5 @@
-max = 7158800
-len = 430
+max = 600000000
+len = 1488
 idx = 0
 arr = Array.new(len, 0)
 
