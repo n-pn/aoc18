@@ -3,13 +3,17 @@
 @m = @map.size
 @n = @map.first.size
 
-@npcs = []
+@elves = {}
+@gobls = {}
+
+Pos = Struct.new(:x, :y)
+Npc = Struct.new(:race, :id, :hp, :pos)
 
 @m.times do |i|
   @n.times do |j|
-    if @map[i][j] == 'G' or @map[i][j] == 'E'
-      @npcs << [@map[i][j], i, j, 200]
-    end
+    c = @map[i][j]
+    @elves[@elves.size] = Npc.new(c, @elves.size, 200, Pos.new(i, j)) if c == 'E'
+    @gobls[@gobls.size] = Npc.new(c, @gobls.size, 200, Pos.new(i, j)) if c == 'G'
   end
 end
 
@@ -18,142 +22,133 @@ def print_map
   puts "\n"
 end
 
-def sort_list(arr)
-  arr.sort_by{|_, x, y, _| [x, y]}
-end
-
 UNREACH = 1000000
 
 def get_distances(npc)
-  distances = Array.new(@m){Array.new(@n, UNREACH)}
+  res = Array.new(@m){Array.new(@n, UNREACH)}
 
-  distances[npc[1]][npc[2]] = 0
-  reaches = [[npc[1], npc[2]]]
+  res[npc.pos.x][npc.pos.y] = 0
+  queue = [npc.pos]
 
   time = 0
-
-  while reaches.size > 0
+  while !queue.empty?
     time += 1
-    x, y = reaches.pop
+    new_queue = []
 
-    if @map[x - 1][y] == '.' and distances[x - 1][y] == UNREACH
-      reaches << [x - 1, y]
-      distances[x - 1][y] = time
+    queue.each do |pos|
+      [[-1, 0], [1, 0], [0, -1], [0, 1]].each do |a, b|
+        if @map[pos.x + a][pos.y + b] == '.' and res[pos.x + a][pos.y + b] == UNREACH
+          new_queue << Pos.new(pos.x + a, pos.y + b)
+          res[pos.x + a][pos.y + b] = time
+        end
+      end
     end
-
-    if @map[x + 1][y] == '.' and distances[x + 1][y] == UNREACH
-      reaches << [x + 1, y]
-      distances[x + 1][y] = time
-    end
-
-    if @map[x][y - 1] == '.' and distances[x][y - 1] == UNREACH
-      reaches << [x, y - 1]
-      distances[x][y - 1] = time
-    end
-
-    if @map[x][y + 1] == '.' and distances[x][y + 1] == UNREACH
-      reaches << [x, y + 1]
-      distances[x][y + 1] = time
-    end
+    queue = new_queue
   end
 
-  distances
-end
-
-def get_enemy_npcs(type)
-  case type
-  when 'G' then @npcs.select{|x| x[0] == 'E' and x[3] > 0}
-  when 'E' then @npcs.select{|x| x[0] == 'G' and x[3] > 0}
-  end
+  res
 end
 
 def reachable_places(enemies)
   reaches = []
 
-  enemies.each do |_, x, y, _|
-
-    reaches << [x - 1, y] if @map[x - 1][y] == '.'
-    reaches << [x + 1, y] if @map[x + 1][y] == '.'
-    reaches << [x, y - 1] if @map[x][y - 1] == '.'
-    reaches << [x, y + 1] if @map[x][y + 1] == '.'
+  enemies.values.each do |npc|
+    reaches << Pos.new(npc.pos.x - 1, npc.pos.y) if @map[npc.pos.x - 1][npc.pos.y] == '.'
+    reaches << Pos.new(npc.pos.x + 1, npc.pos.y) if @map[npc.pos.x + 1][npc.pos.y] == '.'
+    reaches << Pos.new(npc.pos.x, npc.pos.y - 1) if @map[npc.pos.x][npc.pos.y - 1] == '.'
+    reaches << Pos.new(npc.pos.x, npc.pos.y + 1) if @map[npc.pos.x][npc.pos.y + 1] == '.'
   end
 
   reaches
 end
 
-def trace_back(distances, x, y)
-  traces = [[x, y]]
+def trace_back(distances, pos)
+  x = pos.x
+  y = pos.y
+  traces = [pos]
+
   dis = distances[x][y] - 1
 
   while dis > 0
-    if distances[x - 1][y] == dis
-      x -= 1
-    elsif distances[x][y -1] == dis
-      y -= 1
-    elsif distances[x][y + 1] == dis
-      y += 1
-    elsif distances[x + 1][y] == dis
-      x += 1
+    if distances[x - 1][y] == dis then x -= 1
+    elsif distances[x][y -1] == dis then y -= 1
+    elsif distances[x][y + 1] == dis then y += 1
+    elsif distances[x + 1][y] == dis then x += 1
     end
 
     dis -= 1
-    traces << [x, y]
+    traces << Pos.new(x, y)
   end
 
   traces
 end
 
-def move(npc)
-  distances = get_distances(npc)
-  # puts npc.to_s
+@turn = 0
 
-  enemies = get_enemy_npcs(npc[0])
+def races_of(npc)
+  npc.race == 'E' ? @elves : @gobls
+end
 
-  return "NO ENEMY" if enemies.empty?
+def enemies_of(npc)
+  npc.race == 'G' ? @elves : @gobls
+end
+
+def attack(npc, enemies)
+  nearby = enemies.values.select{|e| (e.pos.x - npc.pos.x).abs + (e.pos.y - npc.pos.y).abs == 1}
+  return false if nearby.empty?
+
+  target = nearby.sort_by{|e| [e.hp, e.pos.x, e.pos.y]}.first
+  target.hp -= 3
+
+  if target.hp < 1
+    enemies.delete(target.id)
+    @map[target.pos.x][target.pos.y] = '.'
+  end
+
+  true
+end
+
+def move(npc, turn)
+  return if npc.hp <= 0
+  enemies = enemies_of(npc)
+
+  if enemies.empty?
+    puts turn * races_of(npc).values.map{|x| x.hp}.sum
+    exit
+  end
+
+  return if attack(npc, enemies)
 
   reaches = reachable_places(enemies)
+  return "UNREACHABLE" if reaches.empty?
+
+  distances = get_distances(npc)
   reach_distances = []
 
-  reaches.each do |x, y|
-    if distances[x][y] != UNREACH
-      reach_distances << [distances[x][y], x, y]
-    end
+  reaches.each do |pos|
+    dis = distances[pos.x][pos.y]
+    reach_distances << [pos, dis] if dis != UNREACH
   end
 
-  return "UNREACHABLE" if reach_distances.empty?
+  return if reach_distances.empty?
 
-  target = reach_distances.sort_by {|m, x, y| [m, x, y]}.first
+  reach = reach_distances.sort_by {|pos, dis| [dis, pos.x, pos.y]}.first[0]
+  trace = trace_back(distances, reach)
+  pos = trace.last
 
-  move = trace_back(distances, target[1], target[2]).last
+  @map[npc.pos.x][npc.pos.y] = '.'
+  @map[pos.x][pos.y] = npc.race
 
-  @map[npc[1]][npc[2]] = '.'
-  @map[move[0]][move[1]] = npc[0]
+  npc.pos.x = pos.x
+  npc.pos.y = pos.y
 
-  return "REACHABLE"
+  attack(npc, enemies)
 end
 
-def is_enemy(a, b)
-  a == 'G' && b == 'E' or a == 'E' && b == 'G'
+turn = 0
+loop do
+  (@elves.values + @gobls.values)
+    .sort_by{|npc| [npc.pos.x, npc.pos.y]}
+    .each {|npc| move(npc, turn)}
+  turn += 1
 end
-
-def attack(npc)
-  c, x, y
-  enemies = []
-end
-
-print_map
-
-turn = 1
-
-@npcs.each do |npc|
-  case move(npc)
-  when "NO ENEMY"
-    puts turn
-    return
-  when "REACHABLE"
-    attack(npc)
-  end
-end
-
-print_map
-
