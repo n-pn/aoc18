@@ -18,24 +18,25 @@ def run(op, ins, reg)
   res = reg.dup
   _, a, b, r = ins
 
-  case op
-  when 0 then res[r] = reg[a] + reg[b]
-  when 1 then res[r] = reg[a] + b
-  when 2 then res[r] = reg[a] * reg[b]
-  when 3 then res[r] = reg[a] * b
-  when 4 then res[r] = reg[a] & reg[b]
-  when 5 then res[r] = reg[a] & b
-  when 6 then res[r] = reg[a] | reg[b]
-  when 7 then res[r] = reg[a] | b
-  when 8 then res[r] = reg[a]
-  when 9 then res[r] = a
-  when 10 then res[r] = a > reg[b] ? 1 : 0
-  when 11 then res[r] = reg[a] > b ? 1 : 0
-  when 12 then res[r] = reg[a] > reg[b] ? 1 : 0
-  when 13 then res[r] = a == reg[b] ? 1 : 0
-  when 14 then res[r] = reg[a] == b ? 1 : 0
-  when 15 then res[r] = reg[a] == reg[b] ? 1 : 0
-  end
+  res[r] =
+    case op
+    when 0 then reg[a] + reg[b]
+    when 1 then reg[a] + b
+    when 2 then reg[a] * reg[b]
+    when 3 then reg[a] * b
+    when 4 then reg[a] & reg[b]
+    when 5 then reg[a] & b
+    when 6 then reg[a] | reg[b]
+    when 7 then reg[a] | b
+    when 8 then reg[a]
+    when 9 then a
+    when 10 then a > reg[b] ? 1 : 0
+    when 11 then reg[a] > b ? 1 : 0
+    when 12 then reg[a] > reg[b] ? 1 : 0
+    when 13 then a == reg[b] ? 1 : 0
+    when 14 then reg[a] == b ? 1 : 0
+    when 15 then reg[a] == reg[b] ? 1 : 0
+    end
 
   res
 end
